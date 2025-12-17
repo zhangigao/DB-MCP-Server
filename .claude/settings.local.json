@@ -1,0 +1,17 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(mvn compile:*)",
+      "Bash(curl:*)",
+      "Bash(netstat:*)",
+      "Bash(findstr:*)",
+      "Bash(powershell:*)",
+      "Bash(mvn spring-boot:run:*)",
+      "Bash(taskkill:*)",
+      "Bash(wmic:*)",
+      "Bash(mvn clean compile:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

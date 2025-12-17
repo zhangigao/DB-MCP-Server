@@ -1,0 +1,26 @@
+{
+  "activeProfile" : "mysql",
+  "profiles" : {
+    "mysql" : {
+      "driverClassName" : "com.mysql.cj.jdbc.Driver",
+      "url" : "jdbc:mysql://localhost:3306/your_database",
+      "username" : "your_username",
+      "password" : "your_password",
+      "pool" : null
+    },
+    "oracle" : {
+      "driverClassName" : "oracle.jdbc.OracleDriver",
+      "url" : "jdbc:oracle:thin:@localhost:1521:orcl",
+      "username" : "your_username",
+      "password" : "your_password",
+      "pool" : null
+    },
+    "postgresql" : {
+      "driverClassName" : "org.postgresql.Driver",
+      "url" : "jdbc:postgresql://localhost:5432/your_database",
+      "username" : "your_username",
+      "password" : "your_password",
+      "pool" : null
+    }
+  }
+}

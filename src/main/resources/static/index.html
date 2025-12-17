@@ -1,0 +1,1058 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Database MCP Server</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+            background: #fafbfc;
+            color: #24292e;
+            line-height: 1.5;
+            font-size: 14px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .header {
+            margin-bottom: 40px;
+            border-bottom: 1px solid #e1e4e8;
+            padding-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 32px;
+            font-weight: 600;
+            color: #24292e;
+            margin-bottom: 8px;
+            letter-spacing: -0.5px;
+        }
+
+        .header p {
+            color: #586069;
+            font-size: 16px;
+            margin: 0;
+        }
+
+        .main-grid {
+            display: grid;
+            grid-template-columns: 1fr 380px;
+            gap: 30px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: #ffffff;
+            border: 1px solid #e1e4e8;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid #e1e4e8;
+            background: #f6f8fa;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .card-header h2 {
+            font-size: 18px;
+            font-weight: 600;
+            color: #24292e;
+            margin: 0;
+        }
+
+        .card-body {
+            padding: 24px;
+        }
+
+        /* 数据源表格 */
+        .data-source-table {
+            width: 100%;
+            border-collapse: collapse;
+            table-layout: fixed;
+        }
+
+        .data-source-table th {
+            background: #f6f8fa;
+            padding: 12px 16px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 12px;
+            color: #586069;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            border-bottom: 1px solid #e1e4e8;
+        }
+
+        .data-source-table th:nth-child(1) { width: 15%; }  /* 配置名称 */
+        .data-source-table th:nth-child(2) { width: 12%; }  /* 数据库类型 */
+        .data-source-table th:nth-child(3) { width: 25%; }  /* 连接地址 */
+        .data-source-table th:nth-child(4) { width: 18%; }  /* 状态 */
+        .data-source-table th:nth-child(5) { width: 30%; }  /* 操作 */
+
+        .data-source-table td {
+            padding: 16px;
+            border-bottom: 1px solid #f0f0f0;
+            vertical-align: middle;
+        }
+
+        .data-source-table tr:last-child td {
+            border-bottom: none;
+        }
+
+        .data-source-table tr:hover {
+            background: #f6f8fa;
+        }
+
+        .data-source-table tr.active-row {
+            background: #f0fff4;
+            border-left: 3px solid #28a745;
+        }
+
+        .source-name {
+            font-weight: 600;
+            color: #24292e;
+            font-size: 14px;
+        }
+
+        .database-type {
+            display: inline-block;
+            padding: 4px 8px;
+            background: #e1e4e8;
+            color: #586069;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+        }
+
+        .status-indicator {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 13px;
+            font-weight: 500;
+        }
+
+        .status-dot {
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            display: inline-block;
+        }
+
+        .status-connected .status-dot {
+            background: #28a745;
+        }
+
+        .status-disconnected .status-dot {
+            background: #dc3545;
+        }
+
+        .btn {
+            padding: 4px 8px;
+            border: 1px solid #d1d5da;
+            border-radius: 6px;
+            font-size: 12px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            background: #ffffff;
+            color: #24292e;
+            margin-right: 4px;
+            margin-bottom: 4px;
+            white-space: nowrap;
+        }
+
+        /* 操作列样式 */
+        .action-cell {
+            min-width: 280px;
+            white-space: nowrap;
+        }
+
+        .action-group {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            align-items: center;
+        }
+
+        .active-badge {
+            background: #28a745;
+            color: white;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 11px;
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .btn:hover:not(:disabled) {
+            background: #f6f8fa;
+            border-color: #959da5;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: #0366d6;
+            color: white;
+            border-color: #0366d6;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: #0256cc;
+            border-color: #0256cc;
+        }
+
+        /* 侧边栏状态 */
+        .status-section {
+            margin-bottom: 24px;
+        }
+
+        .status-section h3 {
+            font-size: 12px;
+            font-weight: 600;
+            color: #586069;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            margin-bottom: 12px;
+        }
+
+        .status-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .status-item:last-child {
+            border-bottom: none;
+        }
+
+        .status-label {
+            color: #586069;
+            font-size: 13px;
+        }
+
+        .status-value {
+            font-weight: 600;
+            color: #24292e;
+            font-size: 14px;
+        }
+
+        .message {
+            padding: 16px;
+            margin-bottom: 20px;
+            border-radius: 6px;
+            display: none;
+            animation: slideDown 0.3s ease;
+        }
+
+        @keyframes slideDown {
+            from {
+                opacity: 0;
+                transform: translateY(-10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .message-success {
+            background: #f0fff4;
+            color: #165c26;
+            border: 1px solid #9ee49d;
+        }
+
+        .message-error {
+            background: #ffebe9;
+            color: #b91c1c;
+            border: 1px solid #fcc2c2;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            color: #586069;
+            display: none;
+        }
+
+        .loading:after {
+            content: '';
+            display: inline-block;
+            width: 16px;
+            height: 16px;
+            margin-left: 8px;
+            border: 2px solid #e1e4e8;
+            border-top-color: #0366d6;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        a {
+            color: #0366d6;
+            text-decoration: none;
+        }
+
+        a:hover {
+            text-decoration: underline;
+        }
+
+        @media (max-width: 1024px) {
+            .main-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .btn {
+                padding: 3px 6px;
+                font-size: 11px;
+                margin-right: 2px;
+            }
+
+            .action-cell {
+                min-width: 240px;
+            }
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 20px 16px;
+            }
+
+            .header h1 {
+                font-size: 24px;
+            }
+
+            .data-source-table {
+                font-size: 12px;
+            }
+
+            .data-source-table th,
+            .data-source-table td {
+                padding: 8px;
+            }
+
+            .btn {
+                padding: 2px 4px;
+                font-size: 10px;
+            }
+
+            .action-cell {
+                min-width: 200px;
+            }
+
+            .active-badge {
+                font-size: 9px;
+                padding: 2px 4px;
+            }
+
+            /* 在小屏幕上隐藏连接地址列，为操作列腾出更多空间 */
+            .data-source-table th:nth-child(3),
+            .data-source-table td:nth-child(3) {
+                display: none;
+            }
+
+            .data-source-table th:nth-child(5),
+            .data-source-table td:nth-child(5) {
+                width: 35%; /* 增加操作列宽度 */
+            }
+        }
+
+        /* 模态框样式 */
+        .modal {
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.5);
+        }
+
+        .modal-content {
+            background-color: #ffffff;
+            margin: 5% auto;
+            padding: 0;
+            border: 1px solid #e1e4e8;
+            border-radius: 8px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+        }
+
+        .modal-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 24px;
+            border-bottom: 1px solid #e1e4e8;
+            background: #f6f8fa;
+        }
+
+        .modal-header h3 {
+            margin: 0;
+            font-size: 18px;
+            font-weight: 600;
+            color: #24292e;
+        }
+
+        .close {
+            color: #586069;
+            font-size: 24px;
+            font-weight: bold;
+            cursor: pointer;
+            line-height: 1;
+        }
+
+        .close:hover {
+            color: #24292e;
+        }
+
+        .modal-body {
+            padding: 24px;
+        }
+
+        .form-group {
+            margin-bottom: 16px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            font-weight: 600;
+            color: #24292e;
+            font-size: 14px;
+        }
+
+        .form-group input,
+        .form-group select {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #d1d5da;
+            border-radius: 6px;
+            font-size: 14px;
+            box-sizing: border-box;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus {
+            outline: none;
+            border-color: #0366d6;
+            box-shadow: 0 0 0 2px rgba(3, 102, 214, 0.2);
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            padding: 16px 24px;
+            border-top: 1px solid #e1e4e8;
+            background: #f6f8fa;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Database MCP Server</h1>
+            <p>数据源配置管理 - 支持查看、测试连接、切换数据源</p>
+        </div>
+
+        <div id="message" class="message">
+            <span id="messageText"></span>
+        </div>
+
+        <div class="main-grid">
+            <!-- 主内容区 -->
+            <div class="card">
+                <div class="card-header">
+                    <h2>数据源配置</h2>
+                    <button class="btn btn-primary" onclick="showAddDataSourceModal()" style="float: right;">新增数据源</button>
+                </div>
+                <div class="card-body">
+                    <div id="loading" class="loading">加载数据源配置中</div>
+                    <div id="dataSourceContent">
+                        <table class="data-source-table">
+                            <thead>
+                                <tr>
+                                    <th>配置名称</th>
+                                    <th>数据库类型</th>
+                                    <th>连接地址</th>
+                                    <th>状态</th>
+                                                      <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="dataSourceTableBody">
+                                <!-- 动态生成 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 侧边栏 -->
+            <div>
+                <div class="card">
+                    <div class="card-header">
+                        <h2>当前状态</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="status-section">
+                            <h3>活跃数据源</h3>
+                            <div class="status-item">
+                                <span class="status-label">配置名称</span>
+                                <span class="status-value" id="activeDataSource">-</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">数据库类型</span>
+                                <span class="status-value" id="databaseType">-</span>
+                            </div>
+                            <div class="status-item">
+                                <span class="status-label">连接状态</span>
+                                <span class="status-value" id="connectionStatus">-</span>
+                            </div>
+                          </div>
+
+                                        </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 数据源模态框 -->
+    <div id="dataSourceModal" class="modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3 id="modalTitle">新增数据源</h3>
+                <span class="close" onclick="closeModal()">&times;</span>
+            </div>
+            <div class="modal-body">
+                <form id="dataSourceForm">
+                    <div class="form-group">
+                        <label for="profileName">配置名称:</label>
+                        <input type="text" id="profileName" name="profileName" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="driverType">数据库类型:</label>
+                        <select id="driverType" name="driverType" onchange="updateDriverClassName()">
+                            <option value="mysql">MySQL</option>
+                            <option value="postgresql">PostgreSQL</option>
+                            <option value="oracle">Oracle</option>
+                            <option value="sqlserver">SQL Server</option>
+                        </select>
+                    </div>
+                    <div class="form-group">
+                        <label for="host">主机地址:</label>
+                        <input type="text" id="host" name="host" value="localhost" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="port">端口:</label>
+                        <input type="number" id="port" name="port" value="3306" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="database">数据库名:</label>
+                        <input type="text" id="database" name="database" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="username">用户名:</label>
+                        <input type="text" id="username" name="username" required>
+                    </div>
+                    <div class="form-group">
+                        <label for="password">密码:</label>
+                        <input type="password" id="password" name="password" required>
+                    </div>
+                    <input type="hidden" id="driverClassName" name="driverClassName">
+                    <input type="hidden" id="url" name="url">
+                    <input type="hidden" id="editingProfile" name="editingProfile">
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn" onclick="closeModal()">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveDataSource()">保存</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let currentDataSources = {};
+        let activeProfile = null;
+
+        // 页面加载时初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            loadDataSources();
+        });
+
+        // 加载数据源配置
+        async function loadDataSources() {
+            showLoading(true);
+            try {
+                const response = await fetch('/api/database/datasources');
+                const data = await response.json();
+
+                if (data.success) {
+                    currentDataSources = data.data;
+                    activeProfile = data.active;
+                    renderDataSources();
+                    updateStatus();
+                    hideMessage();
+                } else {
+                    showError('加载数据源配置失败: ' + data.message);
+                }
+            } catch (error) {
+                showError('网络错误: ' + error.message);
+            } finally {
+                showLoading(false);
+            }
+        }
+
+        // 渲染数据源表格
+        function renderDataSources() {
+            const tbody = document.getElementById('dataSourceTableBody');
+            tbody.innerHTML = '';
+
+            Object.entries(currentDataSources).forEach(([profile, config]) => {
+                const row = document.createElement('tr');
+
+                const isActive = profile === activeProfile;
+                if (isActive) {
+                    row.className = 'active-row';
+                }
+
+                const statusClass = config.connected ? 'status-connected' : 'status-disconnected';
+                const statusText = config.connected ? '已连接' : '未连接';
+
+                row.innerHTML = `
+                    <td>
+                        <div class="source-name">${profile}</div>
+                    </td>
+                    <td>
+                        <span class="database-type">${config.type.toUpperCase()}</span>
+                    </td>
+                    <td>
+                        <code style="font-size: 12px; color: #586069;">${config.host}:${config.port}</code>
+                    </td>
+                    <td>
+                        <div class="status-indicator ${statusClass}" id="status-${profile}">
+                            <span class="status-dot"></span>
+                            <span class="status-text">${statusText}</span>
+                        </div>
+                    </td>
+                      <td class="action-cell">
+                        <div class="action-group">
+                            <button class="btn" onclick="testConnection('${profile}')">测试</button>
+                            <button class="btn" onclick="editDataSource('${profile}')">编辑</button>
+                            <button class="btn" onclick="deleteDataSource('${profile}')" ${isActive ? 'disabled' : ''}>删除</button>
+                            ${!isActive ? `<button class="btn btn-primary" onclick="switchDataSource('${profile}')">切换</button>` : '<span class="active-badge">当前活跃</span>'}
+                        </div>
+                    </td>
+                `;
+
+                tbody.appendChild(row);
+            });
+        }
+
+        // 更新状态信息
+        function updateStatus() {
+            const activeConfig = currentDataSources[activeProfile];
+            if (!activeConfig) return;
+
+            document.getElementById('activeDataSource').textContent = activeProfile;
+            document.getElementById('databaseType').textContent = activeConfig.type.toUpperCase();
+
+            const connectionStatusEl = document.getElementById('connectionStatus');
+            const isConnected = activeConfig.connected;
+            connectionStatusEl.innerHTML = `
+                <div class="status-indicator ${isConnected ? 'status-connected' : 'status-disconnected'}">
+                    <span class="status-dot"></span>
+                    <span>${isConnected ? '已连接' : '未连接'}</span>
+                </div>
+            `;
+
+          }
+
+        // 测试连接
+        async function testConnection(profile) {
+            try {
+                // 显示测试中状态
+                const statusEl = document.getElementById(`status-${profile}`);
+                if (statusEl) {
+                    statusEl.className = 'status-indicator';
+                    statusEl.querySelector('.status-text').textContent = '测试中...';
+                }
+
+                const response = await fetch('/api/database/validate', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ profile: profile })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showSuccess(`${profile} 连接测试成功！`);
+                    // 更新状态为已连接
+                    if (statusEl) {
+                        statusEl.className = 'status-indicator status-connected';
+                        statusEl.querySelector('.status-text').textContent = '已连接';
+                    }
+                    // 更新数据源状态
+                    if (currentDataSources[profile]) {
+                        currentDataSources[profile].connected = true;
+                    }
+                    // 如果是活跃数据源，更新侧边栏状态
+                    if (profile === activeProfile) {
+                        updateStatus();
+                    }
+                } else {
+                    showError(`${profile} 连接测试失败: ${data.message}`);
+                    // 更新状态为未连接
+                    if (statusEl) {
+                        statusEl.className = 'status-indicator status-disconnected';
+                        statusEl.querySelector('.status-text').textContent = '未连接';
+                    }
+                    // 更新数据源状态
+                    if (currentDataSources[profile]) {
+                        currentDataSources[profile].connected = false;
+                    }
+                    // 如果是活跃数据源，更新侧边栏状态
+                    if (profile === activeProfile) {
+                        updateStatus();
+                    }
+                }
+            } catch (error) {
+                showError(`连接测试出错: ${error.message}`);
+                // 更新状态为未连接
+                const statusEl = document.getElementById(`status-${profile}`);
+                if (statusEl) {
+                    statusEl.className = 'status-indicator status-disconnected';
+                    statusEl.querySelector('.status-text').textContent = '未连接';
+                }
+                // 更新数据源状态
+                if (currentDataSources[profile]) {
+                    currentDataSources[profile].connected = false;
+                }
+                // 如果是活跃数据源，更新侧边栏状态
+                if (profile === activeProfile) {
+                    updateStatus();
+                }
+            }
+        }
+
+        // 切换数据源
+        async function switchDataSource(profile) {
+            try {
+                const response = await fetch(`/api/database/switch/${profile}?testConnection=false`, {
+                    method: 'POST'
+                });
+
+                const data = await response.json();
+
+                // 处理新的API响应格式
+                if (data.code === 200 && data.data) {
+                    showSuccess(`成功切换到数据源: ${profile}`);
+                    // 重新加载数据以获取最新的活跃配置
+                    await loadDataSources();
+                } else {
+                    showError(`切换失败: ${data.message}`);
+                }
+            } catch (error) {
+                showError(`切换数据源出错: ${error.message}`);
+            }
+        }
+
+        // 显示/隐藏加载状态
+        function showLoading(show) {
+            const loading = document.getElementById('loading');
+            const content = document.getElementById('dataSourceContent');
+
+            if (show) {
+                loading.style.display = 'block';
+                content.style.display = 'none';
+            } else {
+                loading.style.display = 'none';
+                content.style.display = 'block';
+            }
+        }
+
+        // 显示成功消息
+        function showSuccess(message) {
+            showMessage(message, 'success');
+        }
+
+        // 显示错误消息
+        function showError(message) {
+            showMessage(message, 'error');
+        }
+
+        // 显示消息
+        function showMessage(message, type) {
+            const messageDiv = document.getElementById('message');
+            const messageText = document.getElementById('messageText');
+
+            messageText.textContent = message;
+            messageDiv.className = 'message message-' + type;
+            messageDiv.style.display = 'block';
+
+            setTimeout(() => {
+                hideMessage();
+            }, 4000);
+        }
+
+        // 隐藏消息
+        function hideMessage() {
+            const messageDiv = document.getElementById('message');
+            messageDiv.style.display = 'none';
+        }
+
+        // 模态框相关函数
+        function showAddDataSourceModal() {
+            document.getElementById('modalTitle').textContent = '新增数据源';
+            document.getElementById('dataSourceForm').reset();
+            document.getElementById('editingProfile').value = '';
+            document.getElementById('profileName').disabled = false;
+            updateDriverClassName();
+            document.getElementById('dataSourceModal').style.display = 'block';
+        }
+
+        function closeModal() {
+            document.getElementById('dataSourceModal').style.display = 'none';
+        }
+
+        function updateDriverClassName() {
+            const driverType = document.getElementById('driverType').value;
+            const port = document.getElementById('port');
+            const driverClassName = document.getElementById('driverClassName');
+
+            // 根据数据库类型设置默认端口和驱动类名
+            switch(driverType) {
+                case 'mysql':
+                    port.value = '3306';
+                    driverClassName.value = 'com.mysql.cj.jdbc.Driver';
+                    break;
+                case 'postgresql':
+                    port.value = '5432';
+                    driverClassName.value = 'org.postgresql.Driver';
+                    break;
+                case 'oracle':
+                    port.value = '1521';
+                    driverClassName.value = 'oracle.jdbc.OracleDriver';
+                    break;
+                case 'sqlserver':
+                    port.value = '1433';
+                    driverClassName.value = 'com.microsoft.sqlserver.jdbc.SQLServerDriver';
+                    break;
+            }
+        }
+
+        function buildJdbcUrl() {
+            const driverType = document.getElementById('driverType').value;
+            const host = document.getElementById('host').value;
+            const port = document.getElementById('port').value;
+            const database = document.getElementById('database').value;
+
+            let url = '';
+            switch(driverType) {
+                case 'mysql':
+                    url = `jdbc:mysql://${host}:${port}/${database}`;
+                    break;
+                case 'postgresql':
+                    url = `jdbc:postgresql://${host}:${port}/${database}`;
+                    break;
+                case 'oracle':
+                    url = `jdbc:oracle:thin:@${host}:${port}:${database}`;
+                    break;
+                case 'sqlserver':
+                    url = `jdbc:sqlserver://${host}:${port};databaseName=${database}`;
+                    break;
+            }
+
+            document.getElementById('url').value = url;
+        }
+
+        async function saveDataSource() {
+            buildJdbcUrl();
+
+            const profile = document.getElementById('profileName').value.trim();
+            const driverClassName = document.getElementById('driverClassName').value;
+            const url = document.getElementById('url').value;
+            const username = document.getElementById('username').value.trim();
+            const password = document.getElementById('password').value;
+            const editingProfile = document.getElementById('editingProfile').value;
+
+            if (!profile || !driverClassName || !url || !username || !password) {
+                showError('请填写所有必填字段');
+                return;
+            }
+
+            const config = {
+                driverClassName: driverClassName,
+                url: url,
+                username: username,
+                password: password
+            };
+
+            try {
+                let response;
+                if (editingProfile) {
+                    // 更新现有数据源
+                    response = await fetch('/api/database/update', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            profile: editingProfile,
+                            config: config
+                        })
+                    });
+                } else {
+                    // 添加新数据源
+                    response = await fetch('/api/database/add', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json'
+                        },
+                        body: JSON.stringify({
+                            profile: profile,
+                            config: config
+                        })
+                    });
+                }
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showSuccess(data.message);
+                    closeModal();
+                    loadDataSources();
+                } else {
+                    showError(data.message);
+                }
+            } catch (error) {
+                showError('操作失败: ' + error.message);
+            }
+        }
+
+        async function editDataSource(profile) {
+            try {
+                const response = await fetch(`/api/database/profile/${profile}/detail`);
+                const data = await response.json();
+
+                if (data.success) {
+                    document.getElementById('modalTitle').textContent = '编辑数据源';
+                    document.getElementById('editingProfile').value = profile;
+                    document.getElementById('profileName').value = profile;
+                    document.getElementById('profileName').disabled = true;
+
+                    const config = data.config;
+                    document.getElementById('driverClassName').value = config.driverClassName;
+                    document.getElementById('url').value = config.url;
+                    document.getElementById('username').value = config.username;
+
+                    // 根据驱动类名推断数据库类型
+                    let driverType = 'mysql';
+                    if (config.driverClassName.includes('postgresql')) {
+                        driverType = 'postgresql';
+                    } else if (config.driverClassName.includes('oracle')) {
+                        driverType = 'oracle';
+                    } else if (config.driverClassName.includes('sqlserver')) {
+                        driverType = 'sqlserver';
+                    }
+
+                    document.getElementById('driverType').value = driverType;
+
+                    // 从URL中解析连接信息
+                    const url = config.url;
+                    if (url.includes('://')) {
+                        const afterProtocol = url.split('://')[1];
+                        if (afterProtocol.includes(':')) {
+                            const host = afterProtocol.split(':')[0];
+                            const rest = afterProtocol.split(':')[1];
+                            if (rest.includes('/')) {
+                                const port = rest.split('/')[0];
+                                const databasePart = rest.split('/', 2)[1];
+                                const database = databasePart.includes('?') ?
+                                    databasePart.split('?')[0] : databasePart;
+
+                                document.getElementById('host').value = host;
+                                document.getElementById('port').value = port;
+                                document.getElementById('database').value = database;
+                            }
+                        }
+                    }
+
+                    document.getElementById('dataSourceModal').style.display = 'block';
+                } else {
+                    showError('获取数据源详情失败: ' + data.message);
+                }
+            } catch (error) {
+                showError('获取数据源详情出错: ' + error.message);
+            }
+        }
+
+        async function deleteDataSource(profile) {
+            if (!confirm(`确定要删除数据源 "${profile}" 吗？此操作不可恢复。`)) {
+                return;
+            }
+
+            try {
+                const response = await fetch('/api/database/delete', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        profile: profile
+                    })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showSuccess(data.message);
+                    loadDataSources();
+                } else {
+                    showError(data.message);
+                }
+            } catch (error) {
+                showError('删除数据源出错: ' + error.message);
+            }
+        }
+
+        // 点击模态框外部关闭
+        window.onclick = function(event) {
+            const modal = document.getElementById('dataSourceModal');
+            if (event.target == modal) {
+                closeModal();
+            }
+        }
+    </script>
+</body>
+</html>
