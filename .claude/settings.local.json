@@ -9,7 +9,9 @@
       "Bash(mvn spring-boot:run:*)",
       "Bash(taskkill:*)",
       "Bash(wmic:*)",
-      "Bash(mvn clean compile:*)"
+      "Bash(mvn clean compile:*)",
+      "WebSearch",
+      "Bash(mvn dependency:tree:*)"
     ],
     "deny": [],
     "ask": []

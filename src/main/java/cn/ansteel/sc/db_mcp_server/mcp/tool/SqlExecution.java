@@ -1,7 +1,9 @@
-package cn.ansteel.sc.db_mcp_server.mcp.functions;
+package cn.ansteel.sc.db_mcp_server.mcp.tool;
 
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.tool.annotation.Tool;
+import org.springframework.ai.tool.annotation.ToolParam;
 
 import java.sql.Connection;
 import java.sql.ResultSet;
@@ -13,42 +15,52 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * SQL执行函数 - 真实数据库操作版本
+ * SQL执行函数 - 使用SpringAI注解的真实数据库操作版本
  */
 @Slf4j
-public class SqlExecutionFunction implements java.util.function.Function<SqlExecutionFunction.Request, SqlExecutionFunction.Response> {
+public class SqlExecution {
 
     private final DatabaseConnectionManager connectionManager;
 
-    public SqlExecutionFunction(DatabaseConnectionManager connectionManager) {
+    public SqlExecution(DatabaseConnectionManager connectionManager) {
         this.connectionManager = connectionManager;
     }
 
-    @Override
-    public Response apply(Request request) {
-        log.info("执行SQL查询: {}", request.getSql());
+    @Tool(name = "sql执行器", description = "执行SQL查询语句，支持SELECT、SHOW、DESCRIBE、EXPLAIN等只读操作")
+    public Response executeSql(
+            @ToolParam(description = "SQL查询语句") String sql,
+            @ToolParam(description = "数据库连接配置名称") String profile,
+            @ToolParam(description = "查询结果限制条数") Integer limit) {
+
+        log.info("执行SQL查询: {}", sql);
 
         try {
             // 验证SQL安全性
-            String sql = request.getSql().trim();
             if (!isSafeQuery(sql)) {
                 return Response.error("仅支持SELECT、SHOW、DESCRIBE查询");
             }
 
-            // 获取数据库连接
-            String profile = request.getProfile() != null ? request.getProfile() : "mysql";
-            try (Connection conn = connectionManager.getConnection(profile)) {
+            // 设置默认值
+            if (profile == null || profile.trim().isEmpty()) {
+                profile = "mysql";
+            }
+            if (limit == null) {
+                limit = 100;
+            }
 
+            // 获取数据库连接
+            try {
+                Connection conn = connectionManager.getConnection(profile);
                 // 设置查询限制
-                int limit = request.getLimit() != null ? request.getLimit() : 100;
                 String limitedSql = applyLimit(sql, limit);
 
                 // 执行查询
                 try (Statement stmt = conn.createStatement();
                      ResultSet rs = stmt.executeQuery(limitedSql)) {
-
                     return processResultSet(rs, sql);
                 }
+            } catch (Exception e) {
+                throw new RuntimeException(e);
             }
         } catch (Exception e) {
             log.error("SQL执行失败: {}", e.getMessage(), e);
@@ -59,9 +71,9 @@ public class SqlExecutionFunction implements java.util.function.Function<SqlExec
     private boolean isSafeQuery(String sql) {
         String upperSql = sql.toUpperCase();
         return upperSql.startsWith("SELECT") ||
-               upperSql.startsWith("SHOW") ||
-               upperSql.startsWith("DESCRIBE") ||
-               upperSql.startsWith("EXPLAIN");
+                upperSql.startsWith("SHOW") ||
+                upperSql.startsWith("DESCRIBE") ||
+                upperSql.startsWith("EXPLAIN");
     }
 
     private String applyLimit(String sql, int limit) {

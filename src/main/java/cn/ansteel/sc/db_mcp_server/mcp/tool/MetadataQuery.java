@@ -1,9 +1,10 @@
-package cn.ansteel.sc.db_mcp_server.mcp.functions;
+package cn.ansteel.sc.db_mcp_server.mcp.tool;
 
 import cn.ansteel.sc.db_mcp_server.constant.McpConstants;
-import cn.ansteel.sc.db_mcp_server.constant.DatabaseConstant;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.ai.tool.annotation.Tool;
+import org.springframework.ai.tool.annotation.ToolParam;
 
 import java.sql.Connection;
 import java.sql.DatabaseMetaData;
@@ -17,21 +18,33 @@ import java.util.Map;
  * 元数据查询函数 - 真实数据库操作版本
  */
 @Slf4j
-public class MetadataQueryFunction implements java.util.function.Function<MetadataQueryFunction.Request, MetadataQueryFunction.Response> {
+public class MetadataQuery {
 
     private final DatabaseConnectionManager connectionManager;
 
-    public MetadataQueryFunction(DatabaseConnectionManager connectionManager) {
+    public MetadataQuery(DatabaseConnectionManager connectionManager) {
         this.connectionManager = connectionManager;
     }
 
-    @Override
-    public Response apply(Request request) {
+    @Tool(name = "元数据查询器", description = "查询数据库元数据信息，包括表列表、表结构、索引、约束等")
+    public Response queryMetadata(
+            @ToolParam(description = "操作类型：list_tables, describe_table, list_databases, table_indexes, table_constraints, table_statistics, column_info") String operation,
+            @ToolParam(description = "表名称") String tableName,
+            @ToolParam(description = "模式名称") String schemaName,
+            @ToolParam(description = "数据库连接配置名称") String profile) {
+
+        // 创建Request对象来保持兼容性
+        Request request = new Request();
+        request.setOperation(operation);
+        request.setTableName(tableName);
+        request.setSchemaName(schemaName);
+        request.setProfile(profile);
         log.info(McpConstants.LogMessages.METADATA_QUERY, request.getOperation(), request.getTableName());
 
         try {
-            String profile = request.getProfile() != null ? request.getProfile() : McpConstants.Defaults.DEFAULT_PROFILE;
-            try (Connection conn = connectionManager.getConnection(profile)) {
+            // 使用传入的profile参数，如果为空则使用默认值
+            String profileToUse = request.getProfile() != null ? request.getProfile() : McpConstants.Defaults.DEFAULT_PROFILE;
+            try (Connection conn = connectionManager.getConnection(profileToUse)) {
                 DatabaseMetaData metaData = conn.getMetaData();
 
                 // 从连接URL中提取数据库名称
