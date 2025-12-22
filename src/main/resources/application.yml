@@ -1,14 +1,6 @@
 spring:
   application:
     name: "db_mcp_server"
-  # WebFlux CORS配置
-  webflux:
-    cors:
-      allowed-origins: "*"
-      allowed-methods: "*"
-      allowed-headers: "*"
-      allow-credentials: true
-      max-age: 3600
   # Spring AI MCP配置
   ai:
     mcp:
@@ -23,6 +15,3 @@ spring:
 
 server:
   port: 8088
-
-# 注意：数据库配置已迁移到 database-configs.json 文件中
-# 不再使用 application.yml 进行数据源配置

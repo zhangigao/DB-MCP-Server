@@ -63,16 +63,6 @@ public final class DatabaseConstant {
         private ProductNames() {}
     }
 
-    /**
-     * 配置相关
-     */
-    public static final class Config {
-        public static final String CONFIG_FILE_NAME = "database-configs.json";
-        public static final String DEFAULT_PROFILE = "mysql";
-        public static final String DATABASE_NAME_PARAM = "databaseName=";
-
-        private Config() {}
-    }
 
     /**
      * SQL查询模板
